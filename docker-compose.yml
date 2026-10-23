@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: firmeza-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: EnterpriseDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - firmeza_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d EnterpriseDb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: firmeza-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5193
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=EnterpriseDb;Username=postgres;Password=postgres;"
+      Jwt__SecretKey: "EnterpriseSystem_SuperSecretSecureKey_2026_DotNet10_DefaultSigningKey!"
+      Jwt__Issuer: "EnterpriseSystem"
+      Jwt__Audience: "EnterpriseSystemClient"
+      Jwt__ExpiryMinutes: "1440"
+    ports:
+      - "5193:5193"
+
+  frontend:
+    build:
+      context: ${FRONTEND_PATH:-../Firmeza.Frontend}
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5193/api/v1
+    container_name: firmeza-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  firmeza_pgdata:
