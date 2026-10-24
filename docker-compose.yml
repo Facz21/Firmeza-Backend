@@ -39,7 +39,7 @@ services:
 
   frontend:
     build:
-      context: ${FRONTEND_PATH:-../Firmeza.Frontend}
+      context: ${FRONTEND_PATH:-../Firmeza-Frontend}
       dockerfile: Dockerfile
       args:
         VITE_API_URL: http://localhost:5193/api/v1
